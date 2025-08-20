@@ -21,17 +21,18 @@ class VulnerabilityAnalyzerClient:
         except requests.exceptions.RequestException as e:
             return {"error": f"Health check failed: {str(e)}"}
     
-    def analyze_vulnerabilities(self, contract_code: str, vulnerabilities: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def analyze_vulnerabilities(self, contract_code: str, vulnerability_names: List[str]) -> Dict[str, Any]:
         """
         Analyze vulnerabilities in smart contract code.
-        
+
         Args:
             contract_code: Smart contract source code
-            vulnerabilities: List of vulnerability reports
-            
+            vulnerability_names: List of vulnerability names to check for
+
         Returns:
             Analysis results
         """
+        vulnerabilities = [{"name": name} for name in vulnerability_names]
         payload = {
             "contract_code": contract_code,
             "vulnerabilities": vulnerabilities
@@ -121,43 +122,23 @@ def example_usage():
     }
     """
     
-    # Example vulnerabilities to test
-    vulnerabilities = [
-        {
-            "id": "VULN-001",
-            "description": "Reentrancy vulnerability detected in withdraw function. The contract makes an external call before updating the balance, allowing for potential reentrancy attacks.",
-            "severity": "critical",
-            "category": "Reentrancy",
-            "line_numbers": [14, 15, 18]
-        },
-        {
-            "id": "VULN-002",
-            "description": "Missing access control on emergencyWithdraw function allows any user to drain the contract.",
-            "severity": "critical",
-            "category": "Access Control",
-            "line_numbers": [25]
-        },
-        {
-            "id": "VULN-003",
-            "description": "SQL injection vulnerability in smart contract",  # This should be detected as invalid
-            "severity": "high",
-            "category": "Injection"
-        },
-        {
-            "id": "VULN-004",
-            "description": "Buffer overflow in deposit function",  # This should be detected as invalid for Solidity
-            "severity": "medium",
-            "category": "Buffer Overflow"
-        }
+    # Example vulnerability names to check for
+    vulnerability_names = [
+        "Reentrancy",
+        "Access Control",
+        "Integer Overflow",
+        "Unchecked External Calls",
+        "Denial of Service",
+        "Time Manipulation"  # This should not be found in the example contract
     ]
     
     # Analyze vulnerabilities
     print("3. Analyzing vulnerabilities...")
     print(f"Contract Code Length: {len(contract_code)} characters")
-    print(f"Number of Vulnerabilities to Analyze: {len(vulnerabilities)}")
+    print(f"Vulnerability Types to Check: {', '.join(vulnerability_names)}")
     print()
-    
-    results = client.analyze_vulnerabilities(contract_code, vulnerabilities)
+
+    results = client.analyze_vulnerabilities(contract_code, vulnerability_names)
     
     if "error" in results:
         print(f"Error: {results['error']}")
@@ -167,25 +148,24 @@ def example_usage():
     print("4. Analysis Results:")
     print("=" * 40)
     print(f"Success: {results['success']}")
-    print(f"Total Analyzed: {results['total_analyzed']}")
-    print(f"Valid Vulnerabilities: {results['valid_vulnerabilities']}")
-    print(f"Invalid Vulnerabilities: {results['invalid_vulnerabilities']}")
-    print(f"False Positive Rate: {results['false_positive_rate']}%")
+    print(f"Total Checked: {results['total_checked']}")
+    print(f"Vulnerabilities Found: {results['vulnerabilities_found']}")
+    print(f"Vulnerabilities Not Found: {results['vulnerabilities_not_found']}")
     print(f"Processing Time: {results['processing_time_seconds']}s")
     print()
-    
+
     # Display individual results
     for i, result in enumerate(results['results'], 1):
-        print(f"Result {i}: {result['vulnerability_id']}")
-        print(f"  Status: {'✅ VALID' if result['is_valid'] else '❌ INVALID'}")
+        print(f"Result {i}: {result['vulnerability_name']}")
+        print(f"  Status: {'🔴 FOUND' if result['exists'] else '✅ NOT FOUND'}")
         print(f"  Confidence: {result['confidence']}")
         print(f"  Explanation: {result['explanation']}")
-        
-        if result['is_valid'] and result['issue_code']:
+
+        if result['exists'] and result['issue_code']:
             print(f"  Issue Code: {result['issue_code'][:100]}...")
             if result['fixed_code']:
                 print(f"  Fixed Code: {result['fixed_code'][:100]}...")
-        
+
         if result['recommendations']:
             print(f"  Recommendations: {', '.join(result['recommendations'])}")
         print()

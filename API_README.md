@@ -34,11 +34,13 @@ Analyze vulnerabilities in smart contract code.
   "contract_code": "pragma solidity ^0.8.0;\n\ncontract Example {\n    mapping(address => uint256) public balances;\n    \n    function withdraw(uint256 amount) public {\n        require(balances[msg.sender] >= amount);\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success);\n        balances[msg.sender] -= amount;\n    }\n}",
   "vulnerabilities": [
     {
-      "id": "VULN-001",
-      "description": "Reentrancy vulnerability in withdraw function",
-      "severity": "critical",
-      "category": "Reentrancy",
-      "line_numbers": [6, 7, 8, 9]
+      "name": "Reentrancy"
+    },
+    {
+      "name": "Access Control"
+    },
+    {
+      "name": "Integer Overflow"
     }
   ]
 }
@@ -48,23 +50,43 @@ Analyze vulnerabilities in smart contract code.
 ```json
 {
   "success": true,
-  "total_analyzed": 1,
-  "valid_vulnerabilities": 1,
-  "invalid_vulnerabilities": 0,
-  "false_positive_rate": 0.0,
+  "total_checked": 3,
+  "vulnerabilities_found": 1,
+  "vulnerabilities_not_found": 2,
   "processing_time_seconds": 2.5,
   "results": [
     {
-      "vulnerability_id": "VULN-001",
-      "is_valid": true,
+      "vulnerability_name": "Reentrancy",
+      "exists": true,
       "confidence": "high",
-      "explanation": "Reentrancy vulnerability confirmed...",
-      "issue_code": "(bool success, ) = msg.sender.call{value: amount}(\"\");",
-      "fixed_code": "balances[msg.sender] -= amount;\n(bool success, ) = msg.sender.call{value: amount}(\"\");",
-      "recommendations": ["Use checks-effects-interactions pattern"],
-      "vulnerability_type": "Reentrancy",
+      "explanation": "Reentrancy vulnerability confirmed. The contract makes an external call before updating the balance.",
+      "issue_code": "(bool success, ) = msg.sender.call{value: amount}(\"\");\nrequire(success);\nbalances[msg.sender] -= amount;",
+      "fixed_code": "balances[msg.sender] -= amount;\n(bool success, ) = msg.sender.call{value: amount}(\"\");\nrequire(success);",
+      "recommendations": ["Use checks-effects-interactions pattern", "Implement reentrancy guard"],
       "severity": "critical",
       "vulnerable_lines": [7, 8, 9]
+    },
+    {
+      "vulnerability_name": "Access Control",
+      "exists": false,
+      "confidence": "high",
+      "explanation": "No access control vulnerabilities found. Functions have appropriate visibility and access restrictions.",
+      "issue_code": "",
+      "fixed_code": "",
+      "recommendations": [],
+      "severity": null,
+      "vulnerable_lines": null
+    },
+    {
+      "vulnerability_name": "Integer Overflow",
+      "exists": false,
+      "confidence": "high",
+      "explanation": "No integer overflow vulnerabilities found. Solidity 0.8.0+ has built-in overflow protection.",
+      "issue_code": "",
+      "fixed_code": "",
+      "recommendations": [],
+      "severity": null,
+      "vulnerable_lines": null
     }
   ]
 }

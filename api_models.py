@@ -23,30 +23,35 @@ class ConfidenceLevel(str, Enum):
 
 
 class VulnerabilityInput(BaseModel):
-    """Input model for vulnerability reports."""
-    id: str = Field(..., description="Unique identifier for the vulnerability")
-    description: str = Field(..., description="Detailed description of the vulnerability")
-    severity: SeverityLevel = Field(default=SeverityLevel.UNKNOWN, description="Severity level")
-    category: str = Field(..., description="Vulnerability category")
-    line_numbers: Optional[List[int]] = Field(default=None, description="Line numbers where vulnerability is suspected")
+    """Input model for vulnerability names to check."""
+    name: str = Field(..., description="Name/type of vulnerability to check for (e.g., 'Reentrancy', 'Access Control')")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "Reentrancy"
+            }
+        }
 
 
 class AnalysisRequest(BaseModel):
     """Request model for vulnerability analysis."""
     contract_code: str = Field(..., description="Smart contract source code to analyze")
-    vulnerabilities: List[VulnerabilityInput] = Field(..., description="List of vulnerability reports to validate")
-    
+    vulnerabilities: List[VulnerabilityInput] = Field(..., description="List of vulnerability names to check for")
+
     class Config:
         json_schema_extra = {
             "example": {
                 "contract_code": "pragma solidity ^0.8.0;\n\ncontract Example {\n    mapping(address => uint256) public balances;\n    \n    function withdraw(uint256 amount) public {\n        require(balances[msg.sender] >= amount);\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success);\n        balances[msg.sender] -= amount;\n    }\n}",
                 "vulnerabilities": [
                     {
-                        "id": "VULN-001",
-                        "description": "Reentrancy vulnerability in withdraw function",
-                        "severity": "critical",
-                        "category": "Reentrancy",
-                        "line_numbers": [6, 7, 8, 9]
+                        "name": "Reentrancy"
+                    },
+                    {
+                        "name": "Access Control"
+                    },
+                    {
+                        "name": "Integer Overflow"
                     }
                 ]
             }
@@ -55,14 +60,13 @@ class AnalysisRequest(BaseModel):
 
 class AnalysisResultOutput(BaseModel):
     """Output model for individual vulnerability analysis result."""
-    vulnerability_id: str = Field(..., description="ID of the analyzed vulnerability")
-    is_valid: bool = Field(..., description="Whether the vulnerability actually exists")
+    vulnerability_name: str = Field(..., description="Name of the analyzed vulnerability")
+    exists: bool = Field(..., description="Whether the vulnerability actually exists in the code")
     confidence: ConfidenceLevel = Field(..., description="Confidence level of the analysis")
     explanation: str = Field(..., description="Detailed explanation of the analysis")
     issue_code: Optional[str] = Field(default="", description="Code snippet showing the issue")
     fixed_code: Optional[str] = Field(default="", description="Corrected code snippet")
     recommendations: List[str] = Field(default_factory=list, description="Security recommendations")
-    vulnerability_type: Optional[str] = Field(default="", description="Specific vulnerability type")
     severity: Optional[SeverityLevel] = Field(default=None, description="Assessed severity level")
     vulnerable_lines: Optional[List[int]] = Field(default=None, description="Actual vulnerable line numbers")
 
@@ -70,34 +74,42 @@ class AnalysisResultOutput(BaseModel):
 class AnalysisResponse(BaseModel):
     """Response model for vulnerability analysis."""
     success: bool = Field(..., description="Whether the analysis was successful")
-    total_analyzed: int = Field(..., description="Total number of vulnerabilities analyzed")
-    valid_vulnerabilities: int = Field(..., description="Number of valid vulnerabilities found")
-    invalid_vulnerabilities: int = Field(..., description="Number of invalid/false positive vulnerabilities")
-    false_positive_rate: float = Field(..., description="Percentage of false positives")
+    total_checked: int = Field(..., description="Total number of vulnerability types checked")
+    vulnerabilities_found: int = Field(..., description="Number of vulnerabilities found in the code")
+    vulnerabilities_not_found: int = Field(..., description="Number of vulnerability types not present")
     results: List[AnalysisResultOutput] = Field(..., description="Detailed analysis results")
     processing_time_seconds: float = Field(..., description="Time taken to process the request")
-    
+
     class Config:
         json_schema_extra = {
             "example": {
                 "success": True,
-                "total_analyzed": 1,
-                "valid_vulnerabilities": 1,
-                "invalid_vulnerabilities": 0,
-                "false_positive_rate": 0.0,
+                "total_checked": 3,
+                "vulnerabilities_found": 1,
+                "vulnerabilities_not_found": 2,
                 "processing_time_seconds": 2.5,
                 "results": [
                     {
-                        "vulnerability_id": "VULN-001",
-                        "is_valid": True,
+                        "vulnerability_name": "Reentrancy",
+                        "exists": True,
                         "confidence": "high",
                         "explanation": "Reentrancy vulnerability confirmed. The contract makes an external call before updating the balance.",
                         "issue_code": "(bool success, ) = msg.sender.call{value: amount}(\"\");\nrequire(success);\nbalances[msg.sender] -= amount;",
                         "fixed_code": "balances[msg.sender] -= amount;\n(bool success, ) = msg.sender.call{value: amount}(\"\");\nrequire(success);",
                         "recommendations": ["Use checks-effects-interactions pattern", "Implement reentrancy guard"],
-                        "vulnerability_type": "Reentrancy",
                         "severity": "critical",
                         "vulnerable_lines": [7, 8, 9]
+                    },
+                    {
+                        "vulnerability_name": "Access Control",
+                        "exists": False,
+                        "confidence": "high",
+                        "explanation": "No access control vulnerabilities found. Functions have appropriate visibility and access restrictions.",
+                        "issue_code": "",
+                        "fixed_code": "",
+                        "recommendations": [],
+                        "severity": None,
+                        "vulnerable_lines": None
                     }
                 ]
             }

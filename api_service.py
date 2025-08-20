@@ -39,24 +39,60 @@ class VulnerabilityAnalysisService:
         
         return has_solidity_syntax
     
-    def convert_input_to_vulnerability_reports(self, vulnerabilities: List[VulnerabilityInput]) -> List[VulnerabilityReport]:
-        """Convert API input models to internal vulnerability report models."""
+    def convert_vulnerability_names_to_reports(self, vulnerability_names: List[VulnerabilityInput]) -> List[VulnerabilityReport]:
+        """Convert vulnerability names to detailed vulnerability reports for analysis."""
+        # Vulnerability descriptions based on names
+        vulnerability_descriptions = {
+            "Reentrancy": "Check for reentrancy vulnerabilities where external calls are made before state changes, allowing attackers to re-enter the function.",
+            "Access Control": "Check for missing or improper access control mechanisms that could allow unauthorized users to execute privileged functions.",
+            "Integer Overflow": "Check for integer overflow/underflow vulnerabilities in arithmetic operations.",
+            "Integer Underflow": "Check for integer underflow vulnerabilities in arithmetic operations.",
+            "Unchecked External Calls": "Check for external calls that don't properly handle return values or failures.",
+            "Denial of Service": "Check for denial of service vulnerabilities including gas limit issues and unbounded loops.",
+            "Front Running": "Check for front-running vulnerabilities where transaction ordering can be exploited.",
+            "Time Manipulation": "Check for vulnerabilities related to block timestamp manipulation.",
+            "Short Address Attack": "Check for short address attack vulnerabilities in token transfers.",
+            "Uninitialized Storage Pointers": "Check for uninitialized storage pointer vulnerabilities.",
+            "Delegatecall Injection": "Check for delegatecall injection vulnerabilities.",
+            "Signature Malleability": "Check for signature malleability issues in cryptographic operations.",
+            "Gas Limit Issues": "Check for gas limit related vulnerabilities and inefficient gas usage.",
+            "Random Number Generation": "Check for weak or predictable random number generation.",
+            "Logic Errors": "Check for general logic errors and business logic vulnerabilities.",
+            "Tx.Origin": "Check for tx.origin usage instead of msg.sender for authentication.",
+            "Unchecked Return Values": "Check for unchecked return values from external calls.",
+            "State Variable Default Visibility": "Check for state variables with default (public) visibility.",
+            "Floating Pragma": "Check for floating pragma versions that could lead to compilation with vulnerable compiler versions.",
+            "Outdated Compiler Version": "Check for usage of outdated Solidity compiler versions.",
+            "Function Default Visibility": "Check for functions with default visibility that should be explicitly declared.",
+            "Unprotected Ether Withdrawal": "Check for functions that allow ether withdrawal without proper access control.",
+            "Unprotected SELFDESTRUCT": "Check for selfdestruct calls without proper access control.",
+            "Assert Violation": "Check for improper use of assert() that could lead to stuck contracts.",
+            "Deprecated Solidity Functions": "Check for usage of deprecated Solidity functions.",
+            "Centralization Risk": "Check for centralization risks where single points of failure exist.",
+            "Price Oracle Manipulation": "Check for price oracle manipulation vulnerabilities.",
+            "Flash Loan Attack": "Check for vulnerabilities related to flash loan attacks.",
+            "MEV": "Check for MEV (Maximal Extractable Value) related vulnerabilities."
+        }
+
         reports = []
-        for vuln in vulnerabilities:
+        for i, vuln in enumerate(vulnerability_names):
+            vuln_name = vuln.name.strip()
+            description = vulnerability_descriptions.get(vuln_name, f"Check for {vuln_name} vulnerabilities in the smart contract code.")
+
             report = VulnerabilityReport(
-                id=vuln.id,
-                description=vuln.description,
-                severity=vuln.severity.value,
-                category=vuln.category,
-                line_numbers=vuln.line_numbers or []
+                id=f"CHECK-{i+1:03d}",
+                description=description,
+                severity="unknown",
+                category=vuln_name,
+                line_numbers=[]
             )
             reports.append(report)
         return reports
     
-    def convert_results_to_output(self, results: List[AnalysisResult]) -> List[AnalysisResultOutput]:
+    def convert_results_to_output(self, results: List[AnalysisResult], vulnerability_names: List[str]) -> List[AnalysisResultOutput]:
         """Convert internal analysis results to API output models."""
         outputs = []
-        for result in results:
+        for i, result in enumerate(results):
             # Map confidence levels
             confidence_map = {
                 "high": ConfidenceLevel.HIGH,
@@ -64,7 +100,7 @@ class VulnerabilityAnalysisService:
                 "low": ConfidenceLevel.LOW
             }
             confidence = confidence_map.get(result.confidence.lower(), ConfidenceLevel.UNKNOWN)
-            
+
             # Map severity levels if available
             severity = None
             if hasattr(result, 'severity') and result.severity:
@@ -75,16 +111,18 @@ class VulnerabilityAnalysisService:
                     "low": SeverityLevel.LOW
                 }
                 severity = severity_map.get(result.severity.lower(), SeverityLevel.UNKNOWN)
-            
+
+            # Get the original vulnerability name
+            vuln_name = vulnerability_names[i] if i < len(vulnerability_names) else "Unknown"
+
             output = AnalysisResultOutput(
-                vulnerability_id=result.vulnerability_id,
-                is_valid=result.is_valid,
+                vulnerability_name=vuln_name,
+                exists=result.is_valid,
                 confidence=confidence,
                 explanation=result.explanation,
                 issue_code=result.issue_code,
                 fixed_code=result.fixed_code,
                 recommendations=result.recommendations or [],
-                vulnerability_type=getattr(result, 'vulnerability_type', ''),
                 severity=severity,
                 vulnerable_lines=getattr(result, 'vulnerable_lines', None)
             )
@@ -113,34 +151,33 @@ class VulnerabilityAnalysisService:
                 raise ValueError("Invalid or empty smart contract code provided")
             
             if not request.vulnerabilities:
-                raise ValueError("No vulnerabilities provided for analysis")
-            
-            logger.info(f"Starting analysis of {len(request.vulnerabilities)} vulnerabilities")
-            
-            # Convert input models to internal models
-            vulnerability_reports = self.convert_input_to_vulnerability_reports(request.vulnerabilities)
+                raise ValueError("No vulnerability names provided for analysis")
+
+            logger.info(f"Starting analysis for {len(request.vulnerabilities)} vulnerability types")
+
+            # Convert vulnerability names to detailed reports for analysis
+            vulnerability_reports = self.convert_vulnerability_names_to_reports(request.vulnerabilities)
+            vulnerability_names = [vuln.name for vuln in request.vulnerabilities]
             
             # Perform analysis
             results = self.analyzer.analyze_vulnerabilities(vulnerability_reports, request.contract_code)
             
             # Convert results to output models
-            output_results = self.convert_results_to_output(results)
-            
+            output_results = self.convert_results_to_output(results, vulnerability_names)
+
             # Calculate statistics
-            valid_count = sum(1 for result in results if result.is_valid)
-            invalid_count = len(results) - valid_count
-            false_positive_rate = (invalid_count / len(results)) * 100 if results else 0
-            
+            found_count = sum(1 for result in results if result.is_valid)
+            not_found_count = len(results) - found_count
+
             processing_time = time.time() - start_time
-            
-            logger.info(f"Analysis completed in {processing_time:.2f}s. Valid: {valid_count}, Invalid: {invalid_count}")
-            
+
+            logger.info(f"Analysis completed in {processing_time:.2f}s. Found: {found_count}, Not Found: {not_found_count}")
+
             return AnalysisResponse(
                 success=True,
-                total_analyzed=len(results),
-                valid_vulnerabilities=valid_count,
-                invalid_vulnerabilities=invalid_count,
-                false_positive_rate=round(false_positive_rate, 2),
+                total_checked=len(results),
+                vulnerabilities_found=found_count,
+                vulnerabilities_not_found=not_found_count,
                 results=output_results,
                 processing_time_seconds=round(processing_time, 2)
             )

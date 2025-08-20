@@ -139,11 +139,20 @@ async def health_check():
 @app.post("/analyze", response_model=AnalysisResponse)
 async def analyze_vulnerabilities(request: AnalysisRequest):
     """
-    Analyze smart contract vulnerabilities.
-    
-    This endpoint takes a smart contract code and a list of vulnerability reports,
-    then uses DeepSeek AI to determine which vulnerabilities are valid and provides
-    issue code and fixed code for confirmed vulnerabilities.
+    Analyze smart contract for specific vulnerability types.
+
+    This endpoint takes smart contract code and a list of vulnerability names to check for,
+    then uses DeepSeek AI to determine which vulnerabilities exist in the code and provides
+    issue code and fixed code for any vulnerabilities found.
+
+    **Request Format:**
+    - `contract_code`: Solidity smart contract source code
+    - `vulnerabilities`: Array of vulnerability names to check for (e.g., "Reentrancy", "Access Control")
+
+    **Response Format:**
+    - Returns analysis results showing which vulnerabilities exist and which don't
+    - Provides issue code and fixed code for vulnerabilities found
+    - Includes confidence levels and security recommendations
     """
     global service
     
@@ -151,12 +160,12 @@ async def analyze_vulnerabilities(request: AnalysisRequest):
         raise HTTPException(status_code=503, detail="Service not initialized")
     
     try:
-        logger.info(f"Received analysis request with {len(request.vulnerabilities)} vulnerabilities")
-        
+        logger.info(f"Received analysis request to check for {len(request.vulnerabilities)} vulnerability types")
+
         # Perform analysis
         result = await service.analyze_vulnerabilities(request)
-        
-        logger.info(f"Analysis completed successfully. Valid: {result.valid_vulnerabilities}, Invalid: {result.invalid_vulnerabilities}")
+
+        logger.info(f"Analysis completed successfully. Found: {result.vulnerabilities_found}, Not Found: {result.vulnerabilities_not_found}")
         
         return result
         
@@ -194,17 +203,30 @@ async def get_api_info():
             "contract_code": "pragma solidity ^0.8.0;\n\ncontract Example {\n    mapping(address => uint256) public balances;\n    \n    function withdraw(uint256 amount) public {\n        require(balances[msg.sender] >= amount);\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success);\n        balances[msg.sender] -= amount;\n    }\n}",
             "vulnerabilities": [
                 {
-                    "id": "VULN-001",
-                    "description": "Reentrancy vulnerability in withdraw function",
-                    "severity": "critical",
-                    "category": "Reentrancy"
+                    "name": "Reentrancy"
+                },
+                {
+                    "name": "Access Control"
+                },
+                {
+                    "name": "Integer Overflow"
                 }
             ]
         },
         "supported_formats": {
-            "input": "JSON with contract_code and vulnerabilities array",
-            "output": "JSON with analysis results, issue code, and fixed code"
-        }
+            "input": "JSON with contract_code and vulnerabilities array containing vulnerability names",
+            "output": "JSON with analysis results showing which vulnerabilities exist, with issue code and fixed code"
+        },
+        "supported_vulnerability_types": [
+            "Reentrancy", "Access Control", "Integer Overflow", "Unchecked External Calls",
+            "Denial of Service", "Front Running", "Time Manipulation", "Short Address Attack",
+            "Uninitialized Storage Pointers", "Delegatecall Injection", "Signature Malleability",
+            "Gas Limit Issues", "Random Number Generation", "Logic Errors", "Tx.Origin",
+            "Unchecked Return Values", "State Variable Default Visibility", "Floating Pragma",
+            "Outdated Compiler Version", "Function Default Visibility", "Unprotected Ether Withdrawal",
+            "Unprotected SELFDESTRUCT", "Assert Violation", "Deprecated Solidity Functions",
+            "Centralization Risk", "Price Oracle Manipulation", "Flash Loan Attack", "MEV"
+        ]
     }
 
 

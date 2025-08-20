@@ -68,35 +68,44 @@ class DeepSeekClient:
     
     def _create_analysis_prompt(self, vulnerability_description: str, smart_contract_code: str) -> str:
         """Create a detailed prompt for vulnerability analysis."""
-        return f"""
-Please analyze the following smart contract code for the reported vulnerability.
+        # Extract vulnerability type from description
+        vuln_type = vulnerability_description.split("Check for ")[1].split(" vulnerabilities")[0] if "Check for " in vulnerability_description else "unknown"
 
-REPORTED VULNERABILITY:
-{vulnerability_description}
+        return f"""
+You are an expert smart contract security auditor. Analyze the following Solidity code to determine if it contains the specified vulnerability type.
+
+VULNERABILITY TYPE TO CHECK: {vuln_type}
 
 SMART CONTRACT CODE:
 ```solidity
 {smart_contract_code}
 ```
 
+ANALYSIS TASK:
+{vulnerability_description}
+
 Please provide your analysis in the following JSON format:
 {{
     "vulnerability_exists": true/false,
     "confidence_level": "high/medium/low",
-    "explanation": "Detailed explanation of your analysis",
-    "vulnerable_lines": [line_numbers_if_applicable],
-    "vulnerability_type": "specific_vulnerability_category",
+    "explanation": "Detailed explanation of your analysis and findings",
+    "vulnerable_lines": [line_numbers_if_vulnerability_found],
     "severity": "critical/high/medium/low",
-    "issue_code": "code_snippet_showing_the_issue",
+    "issue_code": "exact_code_snippet_showing_the_vulnerability",
     "fixed_code": "corrected_code_snippet_if_vulnerability_exists",
-    "recommendations": ["list", "of", "security", "recommendations"]
+    "recommendations": ["specific", "actionable", "security", "recommendations"]
 }}
 
-Focus on:
-1. Whether the reported vulnerability actually exists in the code
-2. Exact line numbers where issues occur
-3. Provide fixed code only if vulnerability is confirmed
-4. Be precise and avoid false positives
+ANALYSIS GUIDELINES:
+1. Carefully examine the code for the specific vulnerability type mentioned
+2. If the vulnerability exists, provide the exact vulnerable code and line numbers
+3. If the vulnerability exists, provide a corrected version of the code
+4. If the vulnerability does NOT exist, clearly state why it's not present
+5. Be precise and avoid false positives - only report vulnerabilities that actually exist
+6. Consider the specific patterns and characteristics of {vuln_type} vulnerabilities
+7. Provide actionable recommendations for improvement
+
+RESPOND ONLY WITH THE JSON - NO ADDITIONAL TEXT.
 """
     
     def _parse_response(self, response: Dict[str, Any]) -> Optional[Dict[str, Any]]:
