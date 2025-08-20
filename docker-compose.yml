@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  vulnerability-analyzer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smart-contract-analyzer
+    environment:
+      - DEEPSEEK_API_KEY=sk-87457878984f4e6fa51eed224ee46f6f
+      - DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
+      - MODEL_NAME=deepseek-chat
+      - MAX_TOKENS=4000
+      - TEMPERATURE=0.1
+    volumes:
+      # Mount local directories for input/output
+      - ./input:/app/input:ro
+      - ./output:/app/output
+      - ./results:/app/results
+      # Mount sample files
+      - ./sample_contract.sol:/app/sample_contract.sol:ro
+      - ./sample_vulnerabilities.json:/app/sample_vulnerabilities.json:ro
+    stdin_open: true
+    tty: true
+    networks:
+      - analyzer-network
+    restart: unless-stopped
+
+  # Optional: Add a web interface service (for future development)
+  # web-interface:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.web
+  #   container_name: analyzer-web
+  #   ports:
+  #     - "8080:8000"
+  #   depends_on:
+  #     - vulnerability-analyzer
+  #   networks:
+  #     - analyzer-network
+
+networks:
+  analyzer-network:
+    driver: bridge
+
+volumes:
+  analyzer-data:
+    driver: local

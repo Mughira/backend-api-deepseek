@@ -1,0 +1,39 @@
+{
+  "vulnerabilities": [
+    {
+      "id": "VULN-001",
+      "description": "Reentrancy vulnerability detected in withdraw function. The contract makes an external call before updating the balance, allowing for potential reentrancy attacks.",
+      "severity": "critical",
+      "category": "Reentrancy",
+      "line_numbers": [8, 9, 10]
+    },
+    {
+      "id": "VULN-002",
+      "description": "Integer overflow vulnerability in balance calculation during deposit function.",
+      "severity": "high",
+      "category": "Integer Overflow",
+      "line_numbers": [14]
+    },
+    {
+      "id": "VULN-003",
+      "description": "Missing access control on withdraw function allows any user to withdraw funds.",
+      "severity": "critical",
+      "category": "Access Control",
+      "line_numbers": [6]
+    },
+    {
+      "id": "VULN-004",
+      "description": "Unchecked return value from external call could lead to silent failures.",
+      "severity": "medium",
+      "category": "Unchecked External Calls",
+      "line_numbers": [9]
+    },
+    {
+      "id": "VULN-005",
+      "description": "Potential denial of service through gas limit manipulation in withdraw function.",
+      "severity": "low",
+      "category": "Denial of Service",
+      "line_numbers": [9]
+    }
+  ]
+}
