@@ -12,6 +12,8 @@ services:
       - MODEL_NAME=deepseek-chat
       - MAX_TOKENS=4000
       - TEMPERATURE=0.1
+    ports:
+      - "8000:8000"
     volumes:
       # Mount local directories for input/output
       - ./input:/app/input:ro
@@ -20,11 +22,15 @@ services:
       # Mount sample files
       - ./sample_contract.sol:/app/sample_contract.sol:ro
       - ./sample_vulnerabilities.json:/app/sample_vulnerabilities.json:ro
-    stdin_open: true
-    tty: true
     networks:
       - analyzer-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   # Optional: Add a web interface service (for future development)
   # web-interface:

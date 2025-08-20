@@ -38,12 +38,12 @@ RUN mkdir -p /app/input /app/output /app/results && \
 # Switch to non-root user
 USER appuser
 
-# Expose port (if needed for future web interface)
+# Expose port for API
 EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; print('Health check passed')" || exit 1
+    CMD python -c "import requests; requests.get('http://localhost:8000/health', timeout=5)" || exit 1
 
-# Default command - run in interactive mode
-CMD ["python", "main.py", "--interactive"]
+# Default command - run API server
+CMD ["python", "main.py", "--api", "--host", "0.0.0.0", "--port", "8000"]

@@ -4,13 +4,15 @@ A Python application that analyzes smart contract vulnerabilities using the Deep
 
 ## Features
 
-- **Vulnerability Validation**: Determines if reported vulnerabilities actually exist in the code
-- **False Positive Detection**: Identifies and filters out incorrect vulnerability reports
-- **Code Analysis**: Provides specific code snippets showing issues
-- **Automated Fixes**: Generates corrected code for confirmed vulnerabilities
-- **Detailed Reporting**: Exports comprehensive analysis results
-- **Interactive Mode**: User-friendly interface for manual input
-- **Batch Processing**: Analyze multiple vulnerabilities at once
+- **🔍 Vulnerability Validation**: Determines if reported vulnerabilities actually exist in the code
+- **🚫 False Positive Detection**: Identifies and filters out incorrect vulnerability reports
+- **💻 Code Analysis**: Provides specific code snippets showing issues
+- **🔧 Automated Fixes**: Generates corrected code for confirmed vulnerabilities
+- **📊 Detailed Reporting**: Exports comprehensive analysis results
+- **🖥️ Interactive Mode**: User-friendly interface for manual input
+- **⚡ Batch Processing**: Analyze multiple vulnerabilities at once
+- **🌐 REST API**: HTTP API for integration with other tools and services
+- **🐳 Docker Support**: Containerized deployment with Docker and docker-compose
 
 ## Installation
 
@@ -52,6 +54,10 @@ The application uses the DeepSeek API with the provided API key. The configurati
 ### Docker Usage (Recommended)
 
 ```bash
+# Start API server (recommended for integration)
+./docker-run.sh api
+# API will be available at http://localhost:8000
+
 # Quick test with sample data
 ./docker-run.sh sample
 
@@ -64,8 +70,44 @@ The application uses the DeepSeek API with the provided API key. The configurati
 # Run tests
 ./docker-run.sh test
 
-# Using docker-compose
+# Test API endpoints
+./docker-run.sh test-api
+
+# Using docker-compose (starts API server)
 docker-compose up --build
+```
+
+### API Usage
+
+```bash
+# Start API server
+python main.py --api
+
+# Or with custom host/port
+python main.py --api --host 0.0.0.0 --port 8080
+```
+
+**API Endpoints:**
+- `POST /analyze` - Analyze vulnerabilities
+- `GET /health` - Health check
+- `GET /docs` - Interactive API documentation
+- `GET /vulnerabilities/categories` - Supported categories
+
+**Example API Request:**
+```bash
+curl -X POST "http://localhost:8000/analyze" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contract_code": "pragma solidity ^0.8.0; contract Example { ... }",
+    "vulnerabilities": [
+      {
+        "id": "VULN-001",
+        "description": "Reentrancy vulnerability",
+        "severity": "critical",
+        "category": "Reentrancy"
+      }
+    ]
+  }'
 ```
 
 ### Local Python Usage

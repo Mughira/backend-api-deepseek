@@ -118,6 +118,24 @@ run_compose() {
     docker-compose up --build
 }
 
+# Function to run API server
+run_api() {
+    print_status "Starting API server..."
+    setup_directories
+    docker run --rm -p 8000:8000 \
+        -v "$(pwd)/input:/app/input:ro" \
+        -v "$(pwd)/output:/app/output" \
+        -v "$(pwd)/results:/app/results" \
+        smart-contract-analyzer \
+        python main.py --api --host 0.0.0.0 --port 8000
+}
+
+# Function to test API
+test_api() {
+    print_status "Testing API endpoints..."
+    docker run --rm smart-contract-analyzer python api_client_example.py test
+}
+
 # Function to clean up Docker resources
 cleanup() {
     print_status "Cleaning up Docker resources..."
@@ -146,7 +164,9 @@ show_usage() {
     echo "  sample                         Run with sample data"
     echo "  interactive                    Run in interactive mode"
     echo "  analyze <contract> <vulns>     Analyze specific files"
-    echo "  compose                        Run with docker-compose"
+    echo "  api                            Start API server"
+    echo "  test-api                       Test API endpoints"
+    echo "  compose                        Run with docker-compose (API mode)"
     echo "  cleanup                        Clean up Docker resources"
     echo "  help                           Show this help message"
     echo ""
@@ -187,6 +207,14 @@ main() {
             build_image
             shift
             run_analysis "$@"
+            ;;
+        "api")
+            build_image
+            run_api
+            ;;
+        "test-api")
+            build_image
+            test_api
             ;;
         "compose")
             run_compose

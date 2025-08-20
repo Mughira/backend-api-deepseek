@@ -174,9 +174,46 @@ def main():
         action="store_true",
         help="Use sample data for testing"
     )
+    parser.add_argument(
+        "--api", "-a",
+        action="store_true",
+        help="Start API server mode"
+    )
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="API server host (default: 0.0.0.0)"
+    )
+    parser.add_argument(
+        "--port", "-p",
+        type=int,
+        default=8000,
+        help="API server port (default: 8000)"
+    )
     
     args = parser.parse_args()
-    
+
+    if args.api:
+        # Start API server
+        print(f"{Fore.CYAN}Starting Smart Contract Vulnerability Analyzer API Server...{Style.RESET_ALL}")
+        print(f"Host: {args.host}")
+        print(f"Port: {args.port}")
+        print(f"API Documentation: http://{args.host}:{args.port}/docs")
+        print(f"Health Check: http://{args.host}:{args.port}/health")
+        print("Press Ctrl+C to stop the server")
+
+        try:
+            import uvicorn
+            from api_main import app
+            uvicorn.run(app, host=args.host, port=args.port, log_level="info")
+        except ImportError:
+            print(f"{Fore.RED}Error: FastAPI and uvicorn are required for API mode{Style.RESET_ALL}")
+            print("Install with: pip install fastapi uvicorn")
+            sys.exit(1)
+        except KeyboardInterrupt:
+            print(f"\n{Fore.YELLOW}API server stopped{Style.RESET_ALL}")
+        return
+
     if args.interactive:
         interactive_mode()
         return
