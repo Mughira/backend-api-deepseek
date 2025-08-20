@@ -142,7 +142,7 @@ class HealthResponse(BaseModel):
     status: str = Field(..., description="Service status")
     version: str = Field(..., description="API version")
     uptime_seconds: float = Field(..., description="Service uptime in seconds")
-    deepseek_api_status: str = Field(..., description="DeepSeek API connectivity status")
+    deepseek_status: str = Field(..., description="DeepSeek API connectivity status")
     
     class Config:
         json_schema_extra = {
@@ -150,6 +150,6 @@ class HealthResponse(BaseModel):
                 "status": "healthy",
                 "version": "1.0.0",
                 "uptime_seconds": 3600.5,
-                "deepseek_api_status": "connected"
+                "deepseek_status": "connected"
             }
         }

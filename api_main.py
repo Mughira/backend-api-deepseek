@@ -132,7 +132,7 @@ async def health_check():
         status="healthy" if api_status == "connected" else "degraded",
         version="1.0.0",
         uptime_seconds=round(service.get_uptime(), 2),
-        deepseek_api_status=api_status
+        deepseek_status=api_status
     )
 
 

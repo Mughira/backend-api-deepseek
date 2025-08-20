@@ -141,7 +141,7 @@ def test_health_endpoint():
             print(f"   Status: {health['status']}")
             print(f"   Version: {health['version']}")
             print(f"   Uptime: {health['uptime_seconds']}s")
-            print(f"   DeepSeek API: {health['deepseek_api_status']}")
+            print(f"   DeepSeek Status: {health['deepseek_status']}")
             return True
         else:
             print(f"❌ Health check failed: {response.status_code}")

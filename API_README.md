@@ -101,7 +101,7 @@ Check API health status.
   "status": "healthy",
   "version": "1.0.0",
   "uptime_seconds": 3600.5,
-  "deepseek_api_status": "connected"
+  "deepseek_status": "connected"
 }
 ```
 
